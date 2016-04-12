@@ -36,6 +36,8 @@ import com.example.android.sunshine.mobile.R;
 import com.example.android.sunshine.mobile.Utility;
 import com.example.android.sunshine.mobile.data.WeatherContract;
 import com.example.android.sunshine.mobile.muzei.WeatherMuzeiSource;
+import com.example.android.sunshine.mobile.wear.WearWeatherUpdater;
+import com.google.android.gms.common.api.GoogleApiClient;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -53,6 +55,7 @@ import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
 public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
+
     public final String LOG_TAG = SunshineSyncAdapter.class.getSimpleName();
     public static final String ACTION_DATA_UPDATED =
             "com.example.android.sunshine.app.ACTION_DATA_UPDATED";
@@ -87,8 +90,11 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     public static final int LOCATION_STATUS_UNKNOWN = 3;
     public static final int LOCATION_STATUS_INVALID = 4;
 
+    private final WearWeatherUpdater mWearWeatherUpdater;
+
     public SunshineSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
+        mWearWeatherUpdater = new WearWeatherUpdater(context);
     }
 
     @Override
@@ -396,6 +402,10 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
             context.startService(new Intent(ACTION_DATA_UPDATED)
                     .setClass(context, WeatherMuzeiSource.class));
         }
+    }
+
+    private void updateWear() {
+
     }
 
     private void notifyWeather() {

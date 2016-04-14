@@ -1,14 +1,9 @@
 <resources>
-    <string name="app_name">Sunshine</string>
-    <string name="hello_round">Hello Round World!</string>
-    <string name="hello_square">Hello Square World!</string>
 
     <string name="interactive_name">Sample Interactive</string>
     <string name="digital_name">Sample Digital</string>
     <string name="digital_background_color">Background color</string>
     <string name="digital_config_name">Digital watch face configuration</string>
-    <string name="digital_am">AM</string>
-    <string name="digital_pm">PM</string>
 
 
     <!-- TODO: this should be shared (needs covering all the samples with Gradle build model) -->

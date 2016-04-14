@@ -112,8 +112,6 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         Paint mDatePaint;
         Paint mHourPaint;
         Paint mMinutePaint;
-        Paint mSecondPaint;
-        Paint mAmPmPaint;
         Paint mColonPaint;
         float mColonWidth;
         boolean mMute;
@@ -127,16 +125,13 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         float mXOffset;
         float mYOffset;
         float mLineHeight;
-        String mAmString;
-        String mPmString;
+
         int mInteractiveBackgroundColor =
                 SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_BACKGROUND;
         int mInteractiveHourDigitsColor =
                 SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_HOUR_DIGITS;
         int mInteractiveMinuteDigitsColor =
                 SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_MINUTE_DIGITS;
-        int mInteractiveSecondDigitsColor =
-                SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_SECOND_DIGITS;
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -159,17 +154,13 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             Resources resources = SunshineWatchFaceService.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
             mLineHeight = resources.getDimension(R.dimen.digital_line_height);
-            mAmString = resources.getString(R.string.digital_am);
-            mPmString = resources.getString(R.string.digital_pm);
 
             mBackgroundPaint = new Paint();
-            mBackgroundPaint.setColor(mInteractiveBackgroundColor);
-            mDatePaint = createTextPaint(resources.getColor(R.color.digital_date));
-            mHourPaint = createTextPaint(mInteractiveHourDigitsColor, BOLD_TYPEFACE);
-            mMinutePaint = createTextPaint(mInteractiveMinuteDigitsColor);
-            mSecondPaint = createTextPaint(mInteractiveSecondDigitsColor);
-            mAmPmPaint = createTextPaint(resources.getColor(R.color.digital_am_pm));
-            mColonPaint = createTextPaint(resources.getColor(R.color.digital_colons));
+            mBackgroundPaint.setColor(resources.getColor(R.color.primary));
+            mDatePaint = createTextPaint(resources.getColor(R.color.primary_light));
+            mHourPaint = createTextPaint(resources.getColor(R.color.white), BOLD_TYPEFACE);
+            mMinutePaint = createTextPaint(resources.getColor(R.color.white));
+            mColonPaint = createTextPaint(resources.getColor(R.color.white));
 
             mCalendar = Calendar.getInstance();
             mDate = new Date();
@@ -258,14 +249,10 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                     ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
             float textSize = resources.getDimension(isRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
-            float amPmSize = resources.getDimension(isRound
-                    ? R.dimen.digital_am_pm_size_round : R.dimen.digital_am_pm_size);
 
             mDatePaint.setTextSize(resources.getDimension(R.dimen.digital_date_text_size));
             mHourPaint.setTextSize(textSize);
             mMinutePaint.setTextSize(textSize);
-            mSecondPaint.setTextSize(textSize);
-            mAmPmPaint.setTextSize(amPmSize);
             mColonPaint.setTextSize(textSize);
 
             mColonWidth = mColonPaint.measureText(COLON_STRING);
@@ -307,18 +294,12 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                     SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_HOUR_DIGITS);
             adjustPaintColorToCurrentMode(mMinutePaint, mInteractiveMinuteDigitsColor,
                     SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_MINUTE_DIGITS);
-            // Actually, the seconds are not rendered in the ambient mode, so we could pass just any
-            // value as ambientColor here.
-            adjustPaintColorToCurrentMode(mSecondPaint, mInteractiveSecondDigitsColor,
-                    SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_SECOND_DIGITS);
 
             if (mLowBitAmbient) {
                 boolean antiAlias = !inAmbientMode;
                 mDatePaint.setAntiAlias(antiAlias);
                 mHourPaint.setAntiAlias(antiAlias);
                 mMinutePaint.setAntiAlias(antiAlias);
-                mSecondPaint.setAntiAlias(antiAlias);
-                mAmPmPaint.setAntiAlias(antiAlias);
                 mColonPaint.setAntiAlias(antiAlias);
             }
             invalidate();
@@ -346,7 +327,6 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 mHourPaint.setAlpha(alpha);
                 mMinutePaint.setAlpha(alpha);
                 mColonPaint.setAlpha(alpha);
-                mAmPmPaint.setAlpha(alpha);
                 invalidate();
             }
         }
@@ -355,16 +335,11 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             return String.format("%02d", hour);
         }
 
-        private String getAmPmString(int amPm) {
-            return amPm == Calendar.AM ? mAmString : mPmString;
-        }
-
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
             mDate.setTime(now);
-            boolean is24Hour = DateFormat.is24HourFormat(SunshineWatchFaceService.this);
 
             // Show colons for the first half of each second so the colons blink on when the time
             // updates.
@@ -375,16 +350,8 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
             // Draw the hours.
             float x = mXOffset;
-            String hourString;
-            if (is24Hour) {
-                hourString = formatTwoDigitNumber(mCalendar.get(Calendar.HOUR_OF_DAY));
-            } else {
-                int hour = mCalendar.get(Calendar.HOUR);
-                if (hour == 0) {
-                    hour = 12;
-                }
-                hourString = String.valueOf(hour);
-            }
+            String hourString = formatTwoDigitNumber(mCalendar.get(Calendar.HOUR_OF_DAY));
+
             canvas.drawText(hourString, x, mYOffset, mHourPaint);
             x += mHourPaint.measureText(hourString);
 
@@ -400,20 +367,6 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             canvas.drawText(minuteString, x, mYOffset, mMinutePaint);
             x += mMinutePaint.measureText(minuteString);
 
-            // In unmuted interactive mode, draw a second blinking colon followed by the seconds.
-            // Otherwise, if we're in 12-hour mode, draw AM/PM
-            if (!isInAmbientMode() && !mMute) {
-                if (mShouldDrawColons) {
-                    canvas.drawText(COLON_STRING, x, mYOffset, mColonPaint);
-                }
-                x += mColonWidth;
-                canvas.drawText(formatTwoDigitNumber(
-                        mCalendar.get(Calendar.SECOND)), x, mYOffset, mSecondPaint);
-            } else if (!is24Hour) {
-                x += mColonWidth;
-                canvas.drawText(getAmPmString(
-                        mCalendar.get(Calendar.AM_PM)), x, mYOffset, mAmPmPaint);
-            }
 
             // Only render the day of week and date if there is no peek card, so they do not bleed
             // into each other in ambient mode.

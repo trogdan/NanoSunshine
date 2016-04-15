@@ -118,8 +118,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
         Calendar mCalendar;
         Date mDate;
-        SimpleDateFormat mDayOfWeekFormat;
-        java.text.DateFormat mDateFormat;
+        SimpleDateFormat mDateFormat;
 
         boolean mShouldDrawColons;
         float mXOffset;
@@ -211,9 +210,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         }
 
         private void initFormats() {
-            mDayOfWeekFormat = new SimpleDateFormat("EEEE", Locale.getDefault());
-            mDayOfWeekFormat.setCalendar(mCalendar);
-            mDateFormat = DateFormat.getDateFormat(SunshineWatchFaceService.this);
+            mDateFormat = new SimpleDateFormat("EEE, MMM dd yyyy");
             mDateFormat.setCalendar(mCalendar);
         }
 
@@ -337,7 +334,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
-            long now = System.currentTimeMillis();
+            final long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
             mDate.setTime(now);
 
@@ -346,39 +343,46 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             mShouldDrawColons = (System.currentTimeMillis() % 1000) < 500;
 
             // Draw the background.
-            canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
+            final float width = bounds.width();
+            final float height = bounds.height();
+            canvas.drawRect(0, 0, width, height, mBackgroundPaint);
+
+            //Measure to place the hms in center
+            String firstString = formatTwoDigitNumber(mCalendar.get(Calendar.HOUR_OF_DAY));
+            float firstWidth = mHourPaint.measureText(firstString);
+
+            String secondString = formatTwoDigitNumber(mCalendar.get(Calendar.MINUTE));
+
+            float totalWidth = firstWidth + mMinutePaint.measureText(secondString) + mColonWidth;
+            float x = (width - totalWidth) / 2.0f;
 
             // Draw the hours.
-            float x = mXOffset;
-            String hourString = formatTwoDigitNumber(mCalendar.get(Calendar.HOUR_OF_DAY));
-
-            canvas.drawText(hourString, x, mYOffset, mHourPaint);
-            x += mHourPaint.measureText(hourString);
+            canvas.drawText(firstString, x, mYOffset, mHourPaint);
+            x += firstWidth;
 
             // In ambient and mute modes, always draw the first colon. Otherwise, draw the
             // first colon for the first half of each second.
             if (isInAmbientMode() || mMute || mShouldDrawColons) {
                 canvas.drawText(COLON_STRING, x, mYOffset, mColonPaint);
             }
+
             x += mColonWidth;
 
             // Draw the minutes.
-            String minuteString = formatTwoDigitNumber(mCalendar.get(Calendar.MINUTE));
-            canvas.drawText(minuteString, x, mYOffset, mMinutePaint);
-            x += mMinutePaint.measureText(minuteString);
+            canvas.drawText(secondString, x, mYOffset, mMinutePaint);
 
+            // Draw the date
+            firstString = mDateFormat.format(mDate);
 
-            // Only render the day of week and date if there is no peek card, so they do not bleed
+            canvas.drawText(
+                    firstString,
+                    (width - mDatePaint.measureText(firstString))/2.0f,
+                    mYOffset + mLineHeight, mDatePaint);
+
+            // Only render the weather if there is no peek card, so it does not bleed
             // into each other in ambient mode.
             if (getPeekCardPosition().isEmpty()) {
-                // Day of week
-                canvas.drawText(
-                        mDayOfWeekFormat.format(mDate),
-                        mXOffset, mYOffset + mLineHeight, mDatePaint);
-                // Date
-                canvas.drawText(
-                        mDateFormat.format(mDate),
-                        mXOffset, mYOffset + mLineHeight * 2, mDatePaint);
+                //Draw the weather
             }
         }
 

@@ -350,7 +350,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             //Measure to place the hms in center
             String firstString = formatTwoDigitNumber(mCalendar.get(Calendar.HOUR_OF_DAY));
             float firstWidth = mHourPaint.measureText(firstString);
-
+            float firstHeight = mYOffset;
             String secondString = formatTwoDigitNumber(mCalendar.get(Calendar.MINUTE));
 
             float totalWidth = firstWidth + mMinutePaint.measureText(secondString) + mColonWidth;
@@ -374,10 +374,17 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             // Draw the date
             firstString = mDateFormat.format(mDate);
 
+            firstHeight += mLineHeight;
+
             canvas.drawText(
                     firstString,
                     (width - mDatePaint.measureText(firstString))/2.0f,
-                    mYOffset + mLineHeight, mDatePaint);
+                    firstHeight, mDatePaint);
+
+            firstHeight += mLineHeight * 0.5f;
+            firstWidth = (width / 2.0f) - (width * 0.125f); //Width of bar is 1/4 total width, centered
+
+            canvas.drawLine(firstWidth, firstHeight, firstWidth + width * 0.25f, firstHeight, mDatePaint);
 
             // Only render the weather if there is no peek card, so it does not bleed
             // into each other in ambient mode.

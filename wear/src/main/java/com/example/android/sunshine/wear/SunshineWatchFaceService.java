@@ -125,12 +125,9 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         float mYOffset;
         float mLineHeight;
 
-        int mInteractiveBackgroundColor =
-                SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_BACKGROUND;
-        int mInteractiveHourDigitsColor =
-                SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_HOUR_DIGITS;
-        int mInteractiveMinuteDigitsColor =
-                SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_MINUTE_DIGITS;
+        int mInteractiveBackgroundColor;
+        int mInteractiveHourDigitsColor;
+        int mInteractiveMinuteDigitsColor;
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -153,6 +150,10 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             Resources resources = SunshineWatchFaceService.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
             mLineHeight = resources.getDimension(R.dimen.digital_line_height);
+
+            mInteractiveBackgroundColor = resources.getColor(R.color.primary);
+            mInteractiveHourDigitsColor = resources.getColor(R.color.white);
+            mInteractiveMinuteDigitsColor = resources.getColor(R.color.white);
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.primary));
@@ -401,10 +402,10 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 }
 
                 DataItem dataItem = dataEvent.getDataItem();
-                if (!dataItem.getUri().getPath().equals(
-                        SunshineWatchFaceUtil.PATH_WITH_FEATURE)) {
-                    continue;
-                }
+                //if (!dataItem.getUri().getPath().equals(
+                //        SunshineWatchFaceUtil.PATH_WITH_FEATURE)) {
+                //    continue;
+                //}
 
                 DataMapItem dataMapItem = DataMapItem.fromDataItem(dataItem);
                 DataMap config = dataMapItem.getDataMap();

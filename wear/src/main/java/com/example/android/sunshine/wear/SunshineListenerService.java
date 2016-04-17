@@ -40,9 +40,9 @@ public class SunshineListenerService extends WearableListenerService
 
     @Override // WearableListenerService
     public void onMessageReceived(MessageEvent messageEvent) {
-        if (!messageEvent.getPath().equals(SunshineWatchFaceUtil.PATH_WITH_FEATURE)) {
-            return;
-        }
+        //if (!messageEvent.getPath().equals(SunshineWatchFaceUtil.PATH_WITH_FEATURE)) {
+        //    return;
+        //}
         byte[] rawData = messageEvent.getData();
         // It's allowed that the message carries only some of the keys used in the config DataItem
         // and skips the ones that we don't want to change.

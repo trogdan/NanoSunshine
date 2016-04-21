@@ -21,9 +21,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -116,6 +119,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         float mColonWidth;
         boolean mMute;
 
+        Bitmap mWeatherBitmap;
         Calendar mCalendar;
         Date mDate;
         SimpleDateFormat mDateFormat;
@@ -128,6 +132,11 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         int mInteractiveBackgroundColor;
         int mInteractiveHourDigitsColor;
         int mInteractiveMinuteDigitsColor;
+
+        // TODO, a little code behind.  pull this into data model
+        int mId;
+        int mMaxTemp;
+        int mMinTemp;
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -165,6 +174,8 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             mCalendar = Calendar.getInstance();
             mDate = new Date();
             initFormats();
+
+            onVisibilityChanged(true);
         }
 
         @Override
@@ -386,11 +397,22 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             firstWidth = (width / 2.0f) - (width * 0.125f); //Width of bar is 1/4 total width, centered
 
             canvas.drawLine(firstWidth, firstHeight, firstWidth + width * 0.25f, firstHeight, mDatePaint);
+            firstHeight += mLineHeight * 0.5f;
 
             // Only render the weather if there is no peek card, so it does not bleed
             // into each other in ambient mode.
-            if (getPeekCardPosition().isEmpty()) {
+            if (getPeekCardPosition().isEmpty() && mWeatherBitmap != null) {
                 //Draw the weather
+                firstWidth = (width / 2.0f) - (width * 0.40f);
+                canvas.drawText(Integer.toString(mMaxTemp), firstWidth, firstHeight + mLineHeight * 0.5f, mHourPaint);
+
+                firstWidth = (width / 2.0f) - (width * 0.15f); //Width of image is 30% total width, centered
+                canvas.drawBitmap(mWeatherBitmap, null, new Rect((int) firstWidth, (int) firstHeight,
+                        (int) (firstWidth + width * 0.3f), (int) (firstHeight + width * 0.3f)), mDatePaint);
+
+                firstWidth = (width / 2.0f) + (width * 0.30f);
+                canvas.drawText(Integer.toString(mMinTemp), firstWidth, firstHeight + mLineHeight * 0.5f, mMinutePaint);
+
             }
         }
 
@@ -402,16 +424,24 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 }
 
                 DataItem dataItem = dataEvent.getDataItem();
-                //if (!dataItem.getUri().getPath().equals(
-                //        SunshineWatchFaceUtil.PATH_WITH_FEATURE)) {
-                //    continue;
-                //}
+                if (!dataItem.getUri().getPath().equals(
+                        SunshineWatchFaceUtil.PATH_WITH_WEATHER)) {
+                    continue;
+                }
 
                 DataMapItem dataMapItem = DataMapItem.fromDataItem(dataItem);
-                DataMap config = dataMapItem.getDataMap();
+                DataMap weather = dataMapItem.getDataMap();
                 if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Config DataItem updated:" + config);
+                    Log.d(TAG, "Weather DataItems updated:" + weather);
                 }
+                mId = weather.getInt(SunshineWatchFaceUtil.WEATHER_ID_KEY);
+                mMaxTemp = weather.getInt(SunshineWatchFaceUtil.MAX_TEMP_KEY);
+                mMinTemp = weather.getInt(SunshineWatchFaceUtil.MIN_TEMP_KEY);
+
+                mWeatherBitmap = BitmapFactory.decodeResource(getResources(),
+                        SunshineWatchFaceUtil.getArtResourceForWeatherCondition(mId));
+
+                invalidate();
                 //updateUiForConfigDataMap(config);
             }
         }

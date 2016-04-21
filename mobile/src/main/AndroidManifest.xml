@@ -183,14 +183,10 @@
         <service
             android:name=".gcm.RegistrationIntentService"
             android:exported="false" />
+
         <service
-            android:name="com.example.android.sunshine.wear.wear.WearableService"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name="com.example.android.sunshine.wear.WearService"
-            android:enabled="true"
-            android:exported="true"></service>
+            android:name=".wear.WearWeatherService"
+            android:exported="false"/>
     </application>
 
 </manifest>

@@ -36,8 +36,7 @@ import com.example.android.sunshine.mobile.R;
 import com.example.android.sunshine.mobile.Utility;
 import com.example.android.sunshine.mobile.data.WeatherContract;
 import com.example.android.sunshine.mobile.muzei.WeatherMuzeiSource;
-import com.example.android.sunshine.mobile.wear.WearWeatherUpdater;
-import com.google.android.gms.common.api.GoogleApiClient;
+import com.example.android.sunshine.mobile.wear.WearWeatherService;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -90,11 +89,8 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     public static final int LOCATION_STATUS_UNKNOWN = 3;
     public static final int LOCATION_STATUS_INVALID = 4;
 
-    private final WearWeatherUpdater mWearWeatherUpdater;
-
     public SunshineSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
-        mWearWeatherUpdater = new WearWeatherUpdater(context);
     }
 
     @Override
@@ -374,6 +370,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
 
                 updateWidgets();
                 updateMuzei();
+                updateWear();
                 notifyWeather();
             }
             Log.d(LOG_TAG, "Sync Complete. " + cVVector.size() + " Inserted");
@@ -405,7 +402,11 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void updateWear() {
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            Context context = getContext();
+            context.startService(new Intent(ACTION_DATA_UPDATED)
+                    .setClass(context, WearWeatherService.class));
+        }
     }
 
     private void notifyWeather() {

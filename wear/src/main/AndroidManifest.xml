@@ -36,13 +36,13 @@
 
                 <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE" />
             </intent-filter>
-        </service>
-
-        <service android:name=".SunshineListenerService" >
             <intent-filter>
-                <action android:name="com.google.android.gms.wearable.BIND_LISTENER" />
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data android:scheme="wear" android:host="*"
+                    android:pathPrefix="/sun_face" />
             </intent-filter>
         </service>
+
     </application>
 
 </manifest>

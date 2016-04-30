@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/LinearLayout">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="HH"
+            android:id="@+id/hourText"
+            android:textColor="@color/white"
+            android:textSize="36sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text=" : MM"
+            android:id="@+id/minText"
+            android:textSize="36sp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Day, Mon DD, Year"
+        android:id="@+id/dateTextView"
+        android:layout_below="@+id/LinearLayout"
+        android:layout_centerHorizontal="true"
+        android:textSize="16sp"
+        android:textColor="@color/primary_light" />
+
+    <View
+        android:layout_width="32dp"
+        android:layout_height="1dp"
+        android:background="@color/primary_light"
+        android:layout_below="@+id/dateTextView"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp"
+        android:id="@+id/divider" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/divider"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="100"
+            android:id="@+id/loTextView"
+            android:layout_gravity="center_vertical"
+            android:layout_toStartOf="@+id/weatherImage"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:layout_alignParentTop="false"
+            android:gravity="center_horizontal"
+            android:paddingStart="4dp"
+            android:layout_marginStart="4dp"
+            android:textSize="24sp" />
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/weatherImage"
+            android:layout_centerHorizontal="true"
+            android:src="@drawable/art_clear"
+            android:maxWidth="96dp"
+            android:maxHeight="96dp"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="100"
+            android:id="@+id/hiTextView"
+            android:layout_gravity="center_vertical"
+            android:layout_toEndOf="@+id/weatherImage"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:gravity="center_horizontal"
+            android:paddingEnd="4dp"
+            android:layout_marginEnd="4dp"
+            android:textSize="24sp" />
+    </RelativeLayout>
+</RelativeLayout>

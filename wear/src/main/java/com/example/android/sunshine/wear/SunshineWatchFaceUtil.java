@@ -31,8 +31,8 @@ public final class SunshineWatchFaceUtil {
      * The path for the {@link DataItem} containing {@link SunshineWatchFaceService} weather.
      */
     public static final String PATH_WITH_WEATHER = "/sun_face/weather";
-    public static final String MAX_TEMP_KEY = "max";
-    public static final String MIN_TEMP_KEY = "min";
+    public static final String MAX_TEMP_KEY = "hi";
+    public static final String MIN_TEMP_KEY = "lo";
     public static final String WEATHER_ID_KEY = "id";
 
     /**

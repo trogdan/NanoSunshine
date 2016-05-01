@@ -17,15 +17,24 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.UnsupportedEncodingException;
 
 /**
  * Created by dan on 4/9/16.
  */
 public class WearWeatherService extends IntentService
-        implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+        implements MessageApi.MessageListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private static final String[] FORECAST_COLUMNS = new String[]{
             WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
@@ -44,12 +53,12 @@ public class WearWeatherService extends IntentService
      * The path for the {@link DataItem} containing sunshine weather.
      */
     private static final String PATH_WITH_WEATHER = "/sun_face/weather";
+    private static final String PATH_WITH_QUERY = "/sun_face/query";
     private static final String MAX_TEMP_KEY = "hi";
     private static final String MIN_TEMP_KEY = "lo";
     private static final String WEATHER_ID_KEY = "id";
 
     private int mPreviousWeatherID;
-    private int mPreviousTemp;
     private int mPreviousMaxTemp;
     private int mPreviousMinTemp;
 
@@ -58,6 +67,7 @@ public class WearWeatherService extends IntentService
     @Override
     public void onCreate() {
         super.onCreate();
+        android.os.Debug.waitForDebugger();  // this line is key
         Log.d("WearWeatherService", "onCreate - WearWeatherService");
 
         mGoogleApiClient = new GoogleApiClient.Builder(this).
@@ -76,7 +86,7 @@ public class WearWeatherService extends IntentService
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-
+        Wearable.MessageApi.addListener( mGoogleApiClient, this );
     }
 
     @Override
@@ -89,11 +99,19 @@ public class WearWeatherService extends IntentService
         boolean dataUpdated = intent != null &&
                 SunshineSyncAdapter.ACTION_DATA_UPDATED.equals(intent.getAction());
         if (dataUpdated) {
-            updateWearWeather();
+            updateWearWeather(null);
         }
     }
 
-    public void updateWearWeather()
+    @Override
+    public void onMessageReceived(MessageEvent messageEvent) {
+        if (messageEvent.getPath().equalsIgnoreCase(PATH_WITH_QUERY))
+        {
+            updateWearWeather(messageEvent.getSourceNodeId());
+        }
+    }
+
+    public void updateWearWeather(String destinationNode)
     {
         String location = Utility.getPreferredLocation(this);
         Uri weatherForLocationUri = WeatherContract.WeatherEntry.buildWeatherLocationWithStartDate(
@@ -106,25 +124,35 @@ public class WearWeatherService extends IntentService
             int maxTemp = cursor.getInt(INDEX_MAX_TEMP);
             int minTemp = cursor.getInt(INDEX_MIN_TEMP);
 
-            // Only update the weather if it changed from last time,
-            // TODO or on a watch query
-            // TODO needed?
-            if(weatherId != mPreviousWeatherID ||  mPreviousMaxTemp != maxTemp
-                    || mPreviousMinTemp != minTemp)
-            {
-                mPreviousWeatherID = weatherId;
-                mPreviousMinTemp = minTemp;
-                mPreviousMaxTemp = maxTemp;
+            // TODO Only update the weather if it changed from last time,
+            mPreviousWeatherID = weatherId;
+            mPreviousMinTemp = minTemp;
+            mPreviousMaxTemp = maxTemp;
 
-                PutDataMapRequest putDataMapReq = PutDataMapRequest.create(PATH_WITH_WEATHER);
-                putDataMapReq.getDataMap().putInt(WEATHER_ID_KEY, weatherId);
-                putDataMapReq.getDataMap().putInt(MIN_TEMP_KEY, minTemp);
-                putDataMapReq.getDataMap().putInt(MAX_TEMP_KEY, maxTemp);
-                PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
-                PendingResult<DataApi.DataItemResult> pendingResult =
-                        Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq);
+            JSONObject weatherMsg = new JSONObject();
+
+            try {
+                weatherMsg.put(WEATHER_ID_KEY, weatherId);
+                weatherMsg.put(MIN_TEMP_KEY, minTemp);
+                weatherMsg.put(MAX_TEMP_KEY, maxTemp);
+
+                // Send to all connected nodes if none specified
+                if (destinationNode == null) {
+                    NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
+                    for (Node node : nodes.getNodes()) {
+                        Wearable.MessageApi.sendMessage(
+                                mGoogleApiClient, node.getId(), PATH_WITH_WEATHER, weatherMsg.toString().getBytes("utf-8"));
+                    }
+                }
+                else {
+                    Wearable.MessageApi.sendMessage(
+                            mGoogleApiClient, destinationNode, PATH_WITH_WEATHER, weatherMsg.toString().getBytes("utf-8"));
+                }
+            } catch (JSONException | UnsupportedEncodingException e) {
+                e.printStackTrace();
             }
         }
+
         cursor.close();
 
     }

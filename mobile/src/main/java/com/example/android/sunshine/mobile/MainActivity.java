@@ -33,6 +33,7 @@ import android.view.View;
 import com.example.android.sunshine.mobile.data.WeatherContract;
 import com.example.android.sunshine.mobile.gcm.RegistrationIntentService;
 import com.example.android.sunshine.mobile.sync.SunshineSyncAdapter;
+import com.example.android.sunshine.mobile.wear.WearWeatherService;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 
@@ -106,6 +107,9 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
                 Intent intent = new Intent(this, RegistrationIntentService.class);
                 startService(intent);
             }
+
+            // Good as place as any to launch wear, since we know google play is available
+            startService(new Intent(this, WearWeatherService.class));
         }
     }
 

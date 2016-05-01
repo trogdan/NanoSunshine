@@ -54,7 +54,14 @@ import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -78,12 +85,23 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
+    /**
+     * Update rate in milliseconds for normal (not ambient and not mute) mode. We update twice
+     * a second to blink the colons.
+     */
+    private static final long NORMAL_UPDATE_RATE_MS = 500;
+
+    /**
+     * Update rate in milliseconds for mute mode. We update every minute, like in ambient mode.
+     */
+    private static final long MUTE_UPDATE_RATE_MS = TimeUnit.MINUTES.toMillis(1);
+
     @Override
     public Engine onCreateEngine() {
         return new Engine();
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine implements DataApi.DataListener,
+    private class Engine extends CanvasWatchFaceService.Engine implements MessageApi.MessageListener,
             GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
         /** Alpha value for drawing time when in mute mode. */
@@ -92,6 +110,31 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         /** Alpha value for drawing time when not in mute mode. */
         static final int NORMAL_ALPHA = 255;
 
+        static final int MSG_UPDATE_TIME = 0;
+
+        /** How often {@link #mUpdateTimeHandler} ticks in milliseconds. */
+        long mInteractiveUpdateRateMs = NORMAL_UPDATE_RATE_MS;
+
+        /** Handler to update the time periodically in interactive mode. */
+        final Handler mUpdateTimeHandler = new Handler() {
+            @Override
+            public void handleMessage(Message message) {
+                switch (message.what) {
+                    case MSG_UPDATE_TIME:
+                        if (Log.isLoggable(TAG, Log.VERBOSE)) {
+                            Log.v(TAG, "updating time");
+                        }
+                        invalidate();
+                        if (shouldTimerBeRunning()) {
+                            long timeMs = System.currentTimeMillis();
+                            long delayMs =
+                                    mInteractiveUpdateRateMs - (timeMs % mInteractiveUpdateRateMs);
+                            mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
+                        }
+                        break;
+                }
+            }
+        };
 
         GoogleApiClient mGoogleApiClient = new GoogleApiClient.Builder(SunshineWatchFaceService.this)
                 .addConnectionCallbacks(this)
@@ -110,6 +153,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 invalidate();
             }
         };
+
 
         /**
          * Unregistering an unregistered receiver throws an exception. Keep track of the
@@ -202,18 +246,6 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             super.onDestroy();
         }
 
-        private Paint createTextPaint(int defaultInteractiveColor) {
-            return createTextPaint(defaultInteractiveColor, NORMAL_TYPEFACE);
-        }
-
-        private Paint createTextPaint(int defaultInteractiveColor, Typeface typeface) {
-            Paint paint = new Paint();
-            paint.setColor(defaultInteractiveColor);
-            paint.setTypeface(typeface);
-            paint.setAntiAlias(true);
-            return paint;
-        }
-
         @Override
         public void onVisibilityChanged(boolean visible) {
             if (Log.isLoggable(TAG, Log.DEBUG)) {
@@ -222,6 +254,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             super.onVisibilityChanged(visible);
 
             if (visible) {
+
                 mGoogleApiClient.connect();
 
                 registerReceiver();
@@ -233,11 +266,12 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 unregisterReceiver();
 
                 if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
-                    Wearable.DataApi.removeListener(mGoogleApiClient, this);
+                    Wearable.MessageApi.removeListener(mGoogleApiClient, this);
                     mGoogleApiClient.disconnect();
                 }
             }
 
+            updateTimer();
         }
 
         private void initFormats() {
@@ -320,6 +354,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
             invalidate();
 
+            updateTimer();
         }
 
         private void adjustPaintColorToCurrentMode(Paint paint, int interactiveColor,
@@ -340,6 +375,9 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
             boolean inMuteMode = interruptionFilter == WatchFaceService.INTERRUPTION_FILTER_NONE;
 
+            // We only need to update once a minute in mute mode.
+            setInteractiveUpdateRateMs(inMuteMode ? MUTE_UPDATE_RATE_MS : NORMAL_UPDATE_RATE_MS);
+
             if (mMute != inMuteMode) {
                 mMute = inMuteMode;
                 int alphaMask = ((inMuteMode ? MUTE_ALPHA : NORMAL_ALPHA) << 24) + 0x00FFFFFF;
@@ -351,6 +389,18 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                 setTextViewAlpha(mLoText, alphaMask);
 
                 invalidate();
+            }
+        }
+
+        public void setInteractiveUpdateRateMs(long updateRateMs) {
+            if (updateRateMs == mInteractiveUpdateRateMs) {
+                return;
+            }
+            mInteractiveUpdateRateMs = updateRateMs;
+
+            // Stop and restart the timer so the new update rate takes effect immediately.
+            if (shouldTimerBeRunning()) {
+                updateTimer();
             }
         }
 
@@ -415,43 +465,71 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
         }
 
-        @Override // DataApi.DataListener
-        public void onDataChanged(DataEventBuffer dataEvents) {
-            for (DataEvent dataEvent : dataEvents) {
-                if (dataEvent.getType() != DataEvent.TYPE_CHANGED) {
-                    continue;
-                }
-
-                DataItem dataItem = dataEvent.getDataItem();
-                if (!dataItem.getUri().getPath().equals(
-                        SunshineWatchFaceUtil.PATH_WITH_WEATHER)) {
-                    continue;
-                }
-
-                DataMapItem dataMapItem = DataMapItem.fromDataItem(dataItem);
-                DataMap weather = dataMapItem.getDataMap();
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Weather DataItems updated:" + weather);
-                }
-                mId = weather.getInt(SunshineWatchFaceUtil.WEATHER_ID_KEY);
-                mMaxTemp = weather.getInt(SunshineWatchFaceUtil.MAX_TEMP_KEY);
-                mMinTemp = weather.getInt(SunshineWatchFaceUtil.MIN_TEMP_KEY);
-
-                mWeatherBitmap = BitmapFactory.decodeResource(getResources(),
-                        SunshineWatchFaceUtil.getArtResourceForWeatherCondition(mId));
-
-                invalidate();
+        /**
+         * Starts the {@link #mUpdateTimeHandler} timer if it should be running and isn't currently
+         * or stops it if it shouldn't be running but currently is.
+         */
+        private void updateTimer() {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "updateTimer");
+            }
+            mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
+            if (shouldTimerBeRunning()) {
+                mUpdateTimeHandler.sendEmptyMessage(MSG_UPDATE_TIME);
             }
         }
 
+        /**
+         * Returns whether the {@link #mUpdateTimeHandler} timer should be running. The timer should
+         * only run when we're visible and in interactive mode.
+         */
+        private boolean shouldTimerBeRunning() {
+            return isVisible() && !isInAmbientMode();
+        }
 
+        @Override
+        public void onMessageReceived(MessageEvent messageEvent) {
+            if( messageEvent.getPath().equalsIgnoreCase( SunshineWatchFaceUtil.PATH_WITH_WEATHER ) ) {
+                try {
+                    JSONObject weatherMsg = new JSONObject(new String(messageEvent.getData()));
+
+                    mId = weatherMsg.getInt(SunshineWatchFaceUtil.WEATHER_ID_KEY);
+                    mMaxTemp = weatherMsg.getInt(SunshineWatchFaceUtil.MAX_TEMP_KEY);
+                    mMinTemp = weatherMsg.getInt(SunshineWatchFaceUtil.MIN_TEMP_KEY);
+
+                    mWeatherBitmap = BitmapFactory.decodeResource(getResources(),
+                            SunshineWatchFaceUtil.getArtResourceForWeatherCondition(mId));
+
+                    invalidate();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
         @Override  // GoogleApiClient.ConnectionCallbacks
         public void onConnected(Bundle connectionHint) {
             if (Log.isLoggable(TAG, Log.DEBUG)) {
                 Log.d(TAG, "onConnected: " + connectionHint);
             }
-            Wearable.DataApi.addListener(mGoogleApiClient, Engine.this);
+
+            Wearable.MessageApi.addListener(mGoogleApiClient, this);
+
+            // Re-connected, let's get the latest weather
+            sendMessage(SunshineWatchFaceUtil.PATH_WITH_QUERY, null);
+        }
+
+        private void sendMessage( final String path, final String text ) {
+            new Thread( new Runnable() {
+                @Override
+                public void run() {
+                    NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes( mGoogleApiClient ).await();
+                    for(Node node : nodes.getNodes()) {
+                        Wearable.MessageApi.sendMessage(
+                                mGoogleApiClient, node.getId(), path, text == null ? "".getBytes() : text.getBytes() ).await();
+                    }
+                }
+            }).start();
         }
 
         @Override  // GoogleApiClient.ConnectionCallbacks

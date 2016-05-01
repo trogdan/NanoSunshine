@@ -25,9 +25,19 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text=" : MM"
+            android:text=":"
+            android:id="@+id/colonText"
+            android:textSize="36sp"
+            android:textColor="@color/white" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="MM"
             android:id="@+id/minText"
-            android:textSize="36sp" />
+            android:textSize="36sp"
+            android:textColor="@color/white" />
     </LinearLayout>
 
     <TextView

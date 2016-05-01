@@ -27,7 +27,6 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,7 +34,6 @@ import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Display;
 import android.view.LayoutInflater;
@@ -48,12 +46,6 @@ import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.wearable.DataApi;
-import com.google.android.gms.wearable.DataEvent;
-import com.google.android.gms.wearable.DataEventBuffer;
-import com.google.android.gms.wearable.DataItem;
-import com.google.android.gms.wearable.DataMap;
-import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Node;
@@ -66,7 +58,6 @@ import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -191,7 +182,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
         private int specW, specH;
         private View mLayout;
         private final Point mDisplaySize = new Point();
-        private TextView mDateText, mHourText, mMinuteText, mHiText, mLoText;
+        private TextView mDateText, mHourText, mColonText, mMinuteText, mHiText, mLoText;
         private ImageView mWeatherImage;
 
         @Override
@@ -221,6 +212,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             mWeatherImage = (ImageView) mLayout.findViewById(R.id.weatherImage);
             mDateText = (TextView) mLayout.findViewById(R.id.dateTextView);
             mHourText = (TextView) mLayout.findViewById(R.id.hourText);
+            mColonText = (TextView) mLayout.findViewById(R.id.colonText);
             mMinuteText = (TextView) mLayout.findViewById(R.id.minText);
             mHiText = (TextView) mLayout.findViewById(R.id.hiTextView);
             mLoText = (TextView) mLayout.findViewById(R.id.loTextView);
@@ -349,6 +341,8 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
                     SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_BACKGROUND);
             adjustTextColorToCurrentMode(mHourText, mInteractiveHourDigitsColor,
                     SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_HOUR_DIGITS);
+            adjustTextColorToCurrentMode(mColonText, mInteractiveMinuteDigitsColor,
+                    SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_MINUTE_DIGITS);
             adjustTextColorToCurrentMode(mMinuteText, mInteractiveMinuteDigitsColor,
                     SunshineWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_MINUTE_DIGITS);
 
@@ -384,6 +378,7 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
 
                 setTextViewAlpha(mDateText, alphaMask);
                 setTextViewAlpha(mHourText, alphaMask);
+                setTextViewAlpha(mColonText, alphaMask);
                 setTextViewAlpha(mMinuteText, alphaMask);
                 setTextViewAlpha(mHiText, alphaMask);
                 setTextViewAlpha(mLoText, alphaMask);
@@ -434,11 +429,13 @@ public class SunshineWatchFaceService extends CanvasWatchFaceService {
             // In ambient and mute modes, always draw the first colon. Otherwise, draw the
             // first colon for the first half of each second.
             if (isInAmbientMode() || mMute || mShouldDrawColons) {
-                mMinuteText.setText(":" + formatTwoDigitNumber(mCalendar.get(Calendar.MINUTE)));
+                mColonText.setVisibility(View.VISIBLE);
             }
             else {
-                mMinuteText.setText(" " + formatTwoDigitNumber(mCalendar.get(Calendar.MINUTE)));
+                mColonText.setVisibility(View.INVISIBLE);
             }
+
+            mMinuteText.setText(formatTwoDigitNumber(mCalendar.get(Calendar.MINUTE)));
 
             // Only render the weather if there is no peek card, so it does not bleed
             // into each other in ambient mode.
